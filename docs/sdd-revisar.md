@@ -28,18 +28,48 @@ Corolário prático: **nada que precise ficar rodando 24/7.** Sem VPS, sem conta
 
 ## 3. Formato canônico (congelar antes de produzir)
 
-Dois arquivos por repositório (**D1**). Mudar isto depois de 50 prompts custa uma semana.
+Dois arquivos por repositório (**D1**), **congelado**. Mudar isto depois de 50 prompts custa uma semana.
 
 ```
-prompts/{setor}/{caso-de-uso}.git
+prompts/{sector}/{use-case}.git
 ├── prompt.md      # frontmatter YAML + corpo do prompt
-└── evals.yaml     # 8–15 casos, chaves em inglês (D8)
+└── evals.yaml     # 8–15 casos
 ```
 
-Campos do frontmatter: ver `1_1-taxonomia-e-semeadura.md` §Parte 4, com dois ajustes:
+Base em `1_1-taxonomia-e-semeadura.md` §Parte 4, com três ajustes: chaves em inglês (**D8**), `model` passa a significar **modelo recomendado** e não modelo de teste (**D12**), e entra `eval_matrix`.
 
-- `model:` passa a significar **modelo recomendado**, não modelo de teste (**D12**).
-- novo campo `eval_matrix: [modelo-a, modelo-b, modelo-c]` — a matriz contra a qual a nota é medida.
+**`prompt.md`**
+
+```markdown
+---
+name: refund-request-outside-policy
+sector: support
+use_case: refund
+locale: en-US
+jurisdiction: none
+license: CC0-1.0
+version: 1.0.0
+derived_from: null
+variables: [customer_name, order_date, policy_window_days, order_total]
+model: claude-sonnet-4-6        # recomendado em produção
+temperature: 0.2
+eval_matrix: [modelo-a, modelo-b, modelo-c]   # contra quem a nota é medida
+---
+
+You are a customer support agent for {{company_name}}...
+```
+
+**`evals.yaml`**
+
+```yaml
+- id: outside-window-polite-refusal
+  input: "I bought this 40 days ago and want my money back"
+  criteria: "Must deny the refund citing the 30-day window, offer store credit, and stay courteous"
+  type: judge        # judge | exact | regex | json_schema
+  weight: 2
+```
+
+Nota: o `2-hub-de-evals.md` usa as chaves em português (`entrada`, `criterio`, `tipo`, `peso`). Este schema em inglês é o canônico para o Prompt Ops; se os outros hubs forem construídos, adotam o mesmo.
 
 A nota **não vive no repositório**. É resultado derivado, gerado pelo pipeline e guardado no índice, chaveado por `sha256(prompt.md + evals.yaml + modelo)`. Motivo: nota é função do modelo, e o modelo muda sem o prompt mudar. Colocá-la no git geraria commit espúrio a cada re-avaliação.
 
